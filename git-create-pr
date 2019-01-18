@@ -1,0 +1,55 @@
+#!/bin/sh -eu
+#
+# Creates Git PR from the current branch to master.
+# Supports: BitBucket, GitHub
+#
+# TODO: Add support for GitLab
+#
+# You may want to add this to your ~/.gitconfig; this will allow to invoke this
+# script by running just 'git pr' in your Git repository:
+#
+#   [alias]
+#   pr = '!/path/to/git-create-pr'
+#
+# Requires: git, grep, sed, which, x-www-browser
+#
+# License: MIT
+
+# Detect current barnch
+this_branch=$(git symbolic-ref --short HEAD)
+if [ "$this_branch" = "master" ]; then
+    echo "[ERROR] Current branch is master; cannot create pull request from master to master." >&2
+    exit 1
+fi
+
+# Detect remote and build pull request creation URL
+git_remote=$(git remote get-url origin)
+if echo "$git_remote" | grep '@bitbucket.org'; then
+    echo "[INFO] Detected Bitbucket remote: $git_remote"
+    create_pr_url=$(echo "$git_remote" | sed 's,:,/,;s,^.*@,https://,;s,.git$,/pull-requests/new,')
+elif echo "$git_remote" | grep '@github.com'; then
+    echo "[INFO] Detected GitHub remote: $git_remote"
+    create_pr_url=$(echo "$git_remote" | sed 's,:,/,;s,^git@,https://,;s,.git$,/compare,')"/master...$this_branch?expand=1"
+else
+    echo "[ERROR] Unsupported remote type: $git_remote" >&2
+    echo "Supported remote types are: BitBucket, GitHub" >&2
+    exit 1
+fi
+
+# Open web browser to create pull request
+case "${OSTYPE:-}" in
+    darwin*)
+        open "$create_pr_url"
+        ;;
+    *)
+        if which x-www-browser > /dev/null; then
+            x-www-browser "$create_pr_url"
+        else
+            echo "[WARNING] x-www-browser not found" >&2
+            echo "Navigate to this URL to create the PR:"
+            echo ""
+            echo "  $create_pr_url"
+            echo ""
+        fi
+        ;;
+esac
