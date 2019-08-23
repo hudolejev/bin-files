@@ -1,9 +1,7 @@
 #!/bin/sh -eu
 #
-# Creates Git PR from the current branch to master.
-# Supports: BitBucket, GitHub
-#
-# TODO: Add support for GitLab
+# Creates Git PR (MR in terms of GitLab) from the current branch to master.
+# Supports: BitBucket, GitHub, GitLab
 #
 # You may want to add this to your ~/.gitconfig; this will allow to invoke this
 # script by running just 'git pr' in your Git repository:
@@ -30,9 +28,12 @@ if echo "$git_remote" | grep '@bitbucket.org'; then
 elif echo "$git_remote" | grep '@github.com'; then
     echo "[INFO] Detected GitHub remote: $git_remote"
     create_pr_url=$(echo "$git_remote" | sed 's,:,/,;s,^git@,https://,;s,.git$,/compare,')"/master...$this_branch?expand=1"
+elif echo "$git_remote" | grep '@gitlab.com'; then
+    echo "[INFO] Detected GitLab remote: $git_remote"
+    create_pr_url=$(echo "$git_remote" | sed 's,:,/,;s,^git@,https://,;s,.git$,/merge_requests/new,')"?merge_request%5Bsource_branch%5D=$this_branch"
 else
     echo "[ERROR] Unsupported remote type: $git_remote" >&2
-    echo "Supported remote types are: BitBucket, GitHub" >&2
+    echo "Supported remote types are: BitBucket, GitHub, GitLab" >&2
     exit 1
 fi
 
