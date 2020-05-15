@@ -1,0 +1,19 @@
+#!/bin/sh -eu
+#
+# Transforms provided text into modern spelling, examples:
+#  - Kubernetes --> K8s
+#  - Hipster --> H5r
+#  - Continuous delivery --> C8s d6y
+#
+# Because writing the words fully is so 90's.
+#
+# Usage: echo "Some ridiculously long words" | k8s3k
+#
+# Requires: awk, sed
+
+while read line; do
+    for word in $line; do
+        echo "$word" | awk 'ORS=" " {if (length > 3) print substr($0, 1, 1) (length - 2) substr($0, length); else print $0}'
+    #done | sed 's/ to / -> /; s/ $/\n/'
+    done | sed 's/ $/\n/'
+done
