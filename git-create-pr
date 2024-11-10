@@ -1,6 +1,6 @@
 #!/bin/sh -eu
 #
-# Creates Git PR (MR in terms of GitLab) from the current branch to master.
+# Creates PR (GitLab: MR) from the current branch to remote main branch.
 # Supports: BitBucket, GitHub, GitLab
 #
 # You may want to add this to your ~/.gitconfig; this will allow to invoke this
@@ -13,44 +13,52 @@
 #
 # License: MIT
 
+# Detect main branch
+main_branch=$(git branch --list --remote origin/main origin/master | head -1 | sed 's,^ *origin/,,')
+
 # Detect current barnch
 this_branch=$(git symbolic-ref --short HEAD)
-if [ "$this_branch" = "master" ]; then
-    echo "[ERROR] Current branch is master; cannot create pull request from master to master." >&2
+if [ "$this_branch" = "$main_branch" ]; then
+    echo "[ERROR] Current branch is $main_branch; cannot create pull request from $this_branch to $main_branch." >&2
     exit 1
 fi
 
 # Detect remote and build pull request creation URL
 git_remote=$(git remote get-url origin)
-if echo "$git_remote" | grep '@bitbucket.org'; then
-    echo "[INFO] Detected Bitbucket remote: $git_remote"
+case "$git_remote" in
+*@bitbucket.org:*)
+    echo "[DEBUG] Detected Bitbucket remote: $git_remote" >&2
     create_pr_url=$(echo "$git_remote" | sed 's,:,/,;s,^.*@,https://,;s,.git$,/pull-requests/new,')
-elif echo "$git_remote" | grep '@github.com'; then
-    echo "[INFO] Detected GitHub remote: $git_remote"
-    create_pr_url=$(echo "$git_remote" | sed 's,:,/,;s,^git@,https://,;s,.git$,/compare,')"/master...$this_branch?expand=1"
-elif echo "$git_remote" | grep '@gitlab.com'; then
-    echo "[INFO] Detected GitLab remote: $git_remote"
+    ;;
+*@github.com:*)
+    echo "[DEBUG] Detected GitHub remote: $git_remote" >&2
+    create_pr_url=$(echo "$git_remote" | sed 's,:,/,;s,^git@,https://,;s,.git$,/compare,')"/$main_branch...$this_branch?expand=1"
+    ;;
+*@gitlab.com:*)
+    echo "[DEBUG] Detected GitLab remote: $git_remote" >&2
     create_pr_url=$(echo "$git_remote" | sed 's,:,/,;s,^git@,https://,;s,.git$,/merge_requests/new,')"?merge_request%5Bsource_branch%5D=$this_branch"
-else
+    ;;
+*)
     echo "[ERROR] Unsupported remote type: $git_remote" >&2
     echo "Supported remote types are: BitBucket, GitHub, GitLab" >&2
     exit 1
-fi
+    ;;
+esac
 
 # Open web browser to create pull request
 case "${OSTYPE:-}" in
-    darwin*)
-        open "$create_pr_url"
-        ;;
-    *)
-        if which x-www-browser > /dev/null; then
-            x-www-browser "$create_pr_url"
-        else
-            echo "[WARNING] x-www-browser not found" >&2
-            echo "Navigate to this URL to create the PR:"
-            echo ""
-            echo "  $create_pr_url"
-            echo ""
-        fi
-        ;;
+darwin*)
+    open "$create_pr_url"
+    ;;
+*)
+    if which x-www-browser > /dev/null; then
+        x-www-browser --new-window "$create_pr_url"
+    else
+        echo "[WARNING] x-www-browser not found" >&2
+        echo "Navigate to this URL to create the PR:"
+        echo ""
+        echo "  $create_pr_url"
+        echo ""
+    fi
+    ;;
 esac
