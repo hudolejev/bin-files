@@ -11,7 +11,7 @@
 #
 # Requires: awk, sed
 
-while read line; do
+while read -r line; do
     for word in $line; do
         echo "$word" | awk 'ORS=" " {if (length > 3) print substr($0, 1, 1) (length - 2) substr($0, length); else print $0}'
     #done | sed 's/ to / -> /; s/ $/\n/'
