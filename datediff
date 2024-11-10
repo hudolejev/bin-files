@@ -1,0 +1,31 @@
+#!/bin/sh -eu
+
+print_usage() {
+    cat <<EOF
+Show number of days between two dates.
+
+Usage: $(basename "$0") <date1_str> [<date2_str>]
+
+Only date parts are used in calculation (as in MySQL DATEDIFF function).
+<date2_str> = 'today' assumed if not provided.
+EOF
+}
+
+get_date_str() {
+    date -d "$1" "+%Y-%m-%d"
+}
+
+get_time() {
+    date -d "$1" "+%s"
+}
+
+if [ "$#" -lt 1 ]; then
+    print_usage
+    exit 1
+fi
+
+date1=$(get_date_str "$1")
+date2=$(get_date_str "${2:-today}")
+
+echo "Days between $date1 (not incl.) and $date2 (incl.):"
+echo $(( ( $(get_time "$date1") - $(get_time "$date2") ) / 86400 ))
