@@ -46,12 +46,13 @@ case "$git_remote" in
 esac
 
 # Open web browser to create pull request
-case "${OSTYPE:-}" in
-darwin*)
+os=$(uname)
+case "$os" in
+Darwin)
     open "$create_pr_url"
     ;;
 *)
-    if which x-www-browser > /dev/null; then
+    if command -v x-www-browser > /dev/null; then
         x-www-browser --new-window "$create_pr_url"
     else
         echo "[WARNING] x-www-browser not found" >&2
